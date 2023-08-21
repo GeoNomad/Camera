@@ -1,7 +1,7 @@
 # Camera
 HTML Javascript upload jpeg image to php server script from any attached camera
 
-For several years the <a href='https://benlo.com/cottagecam/archive.php?cam=Turtle'>Turtle Cam</a> has been showing images of Turtle Rock updated once per minute.
+For several years the <a href='https://benlo.com/cottagecam/archive.php?cam=Turtle'>Turtle Cam</a> has been uploading images of Turtle Rock once a minute.
 
 The images are taken by a <a href='https://tinyscope-club.com/products/dwarf-telescope'>DWARF telescope</a> USB camera.
 
@@ -11,6 +11,6 @@ The browser permissions must be set to allow camera access, of course.
 
 In the camera.html file, set the name of the camera. If no name is chosen, the first camera in the list will be used.
 
-Modify the upload target to your server.
+Modify the upload target to your server and install upload.php on it. Change your jpg file saving to suit.
 
 
