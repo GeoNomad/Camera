@@ -1,0 +1,177 @@
+<html>
+<!-- MIT License benlo.com  -->
+<head>
+  <title>Camera Snapshot Uploader</title>
+<meta http-equiv="refresh" content="3600"> 
+  <style>
+    video { border: 1px solid #ccc; display: block; margin: 480 0 20px 0; }
+    #canvas { margin-top: 20px; border: 1px solid #ccc; display: block; }
+  </style>
+
+</head>
+<body>
+<canvas id="canvas" width="640" height="480" style='position:absolute;top:0px;left:0px;margin:7px;'></canvas>
+<video id="video" width="" height="480" autoplay style='position:absolute;top:0px;left:650px;margin:7px;'></video>
+
+<div id='errors' style='position:absolute; top:490px;left:10px;margin:7px;'></div>
+<div style='position:absolute; top:520px;left:10px;margin:7px;'>
+  <img id='testimg' src='test.jpg' height=120>
+</div>
+<div style='position:absolute; top:490px;left:650px;margin:7px;'>
+<button id="pause" onclick='pause()'>Pause</button>
+<button id="snap" onclick='snap()'>Snap Photo</button>
+<button id="" onclick='upload()'>Upload</button>
+<button id="timer" onclick='timer()'>Timer</button>
+<div id='devices'></div>
+</div>
+<script>
+// meta refresh restarts page once an hour
+// uploads one photo per minute
+// change camera name to your USB camera
+// change upload.php to your server
+
+var cameraName = ''; // or 'Microsoft Camera Front' or 'camera2 0, facing back' or 'camera2 1, facing front'
+
+var uploadTarget = 'https://benlo.com/github/upload.php'; // Change to your server
+
+
+var errors = document.getElementById('errors');
+var count = 0;
+
+if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) 
+  {
+  alert('No mediaDevices');
+  }
+var Xstream;
+var CameraId;
+var video = document.getElementById('video');
+
+navigator.mediaDevices.enumerateDevices()
+  .then( function(devices) 
+    {
+    devices.forEach(function(device) 
+      {
+      if ( device.kind == 'videoinput')
+        {
+        document.getElementById('devices').innerHTML += '<p>cameraName: <b>'+device.label+'</b> '+device.deviceId +'<br>';  // List the cameras
+        console.log(device.kind + ": " + device.label +
+                  " id = " + device.deviceId);
+        if ( !cameraName || device.label.indexOf( cameraName ) >= 0 )  
+          {
+          CameraId = device.deviceId;
+          cameraName = device.label;  // if name wasn't specified - first camera found is used...
+          var mediaConfig =  { video: 
+            { 
+            deviceId: { exact: CameraId }  
+            }};
+ 
+          navigator.mediaDevices.getUserMedia( mediaConfig )
+          .then( function(stream) 
+            {
+            let {width, height} = stream.getTracks()[0].getSettings();
+            console.log(`${width}x${height}`); 
+            video.srcObject = stream;
+            Xstream = stream;
+            video.play();
+            });
+          }
+        }
+      });
+    })
+
+
+function snap() 
+  {
+  var canvas = document.getElementById('canvas');
+  var context = canvas.getContext('2d');
+  context.drawImage(video, 0, 0, 640, 480);
+  context.font = '15px verdana';
+  context.fillStyle = '#ffffff';
+  context.fillText(datestring(),15,15);
+  }
+
+function datestring()
+  {
+  var m = new Date();
+  var dateString =
+    m.getFullYear() + "-" +
+    ("0" + (m.getMonth()+1)).slice(-2) + "-" +
+    ("0" + m.getDate()).slice(-2) + " " +
+    ("0" + m.getHours()).slice(-2) + ":" +
+    ("0" + m.getMinutes()).slice(-2) + ":" +
+    ("0" + m.getSeconds()).slice(-2);
+  return dateString;
+  }
+
+function upload() 
+  {
+  var canvas = document.getElementById("canvas");
+  var dataURL = canvas.toDataURL("image/jpeg",0.75);
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', uploadTarget, true);
+  xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+  xhr.onload = function () 
+    {
+    console.log(xhr.responseText);
+    count++;
+    errors.innerHTML = 'DONE: '+count+'. last: '+Math.round(video.currentTime)+' sec. Heap: '+(performance.memory.usedJSHeapSize/1000000) + ' '+video.videoWidth+'x'+video.videoHeight;
+    document.getElementById("testimg").src = 'test.jpg?'+Math.random();
+    };
+  xhr.onerror = function () 
+    {
+    console.log(xhr.responseText);
+    errors.innerHTML = 'UPLOAD ERROR '+xhr.status+' '+xhr.statusText;
+    };
+  xhr.upload.onprogress = function(e) 
+    {
+    if (e.lengthComputable) 
+      {
+      var percentComplete = (e.loaded / e.total) * 100;
+      console.log(percentComplete + '% uploaded');
+      }
+    };
+  errors.innerHTML = 'UP1 '+count+' uploads '+video.currentTime;
+  xhr.send('data='+dataURL);
+  errors.innerHTML = 'UP2 '+count+' uploads '+video.currentTime;
+  }
+
+intervalID = false;
+function timer()
+  {
+  if ( intervalID )
+    {
+    clearInterval(intervalID);
+    document.getElementById('timer').innerHTML = 'Timer';
+    return;
+    }
+  document.getElementById('timer').innerHTML = 'Stop';
+  intervalID = setInterval(function()
+    {
+    video.play();
+    snap();
+    upload();
+    },60000 );
+  }
+setTimeout(function()
+  {
+  video.play();
+  snap();
+  },5000); // first upload in 5 seconds
+timer(); // upload every 60 seconds
+
+function pause()
+  {
+  if ( document.getElementById('pause').innerHTML == 'PLAY' )
+    {
+    video.play();
+    document.getElementById('pause').innerHTML = 'PAUSE';
+    return;
+    }
+  video.pause();
+  document.getElementById('pause').innerHTML = 'PLAY';
+  }
+
+</script>
+</body>
+</html>
